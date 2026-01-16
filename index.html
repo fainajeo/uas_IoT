@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring Lingkungan IoT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .lamp-glow {
+            box-shadow: 0 0 40px rgba(250, 204, 21, 0.6);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 min-h-screen">
+    <div class="p-6 max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-slate-800 rounded-lg shadow-xl p-6 mb-6 border border-slate-700">
+            <div class="flex justify-between items-center flex-wrap gap-4">
+                <div>
+                    <h1 class="text-3xl font-bold text-white mb-2">
+                        Monitoring Lingkungan Ruang Kerja
+                    </h1>
+                    <p class="text-slate-400">Real-time monitoring dengan MQTT over TLS</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div id="connectionStatus" class="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20">
+                        <svg class="text-green-400" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                        </svg>
+                        <span class="font-semibold text-green-400">Connected (TLS)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Values Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <!-- Temperature Card -->
+            <div class="bg-slate-800 rounded-lg shadow-xl p-6 border border-slate-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-red-500/20 rounded-lg">
+                            <svg class="text-red-400" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-sm">Suhu</p>
+                            <p id="tempValue" class="text-3xl font-bold text-green-500">0°C</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-slate-500">Range: 18°C - 30°C</div>
+            </div>
+
+            <!-- Humidity Card -->
+            <div class="bg-slate-800 rounded-lg shadow-xl p-6 border border-slate-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-blue-500/20 rounded-lg">
+                            <svg class="text-blue-400" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-sm">Kelembapan</p>
+                            <p id="humidityValue" class="text-3xl font-bold text-green-500">0%</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-slate-500">Range: 30% - 70%</div>
+            </div>
+
+            <!-- Light Card -->
+            <div class="bg-slate-800 rounded-lg shadow-xl p-6 border border-slate-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="p-3 bg-yellow-500/20 rounded-lg">
+                            <svg class="text-yellow-400" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-slate-400 text-sm">Cahaya</p>
+                            <p id="lightValue" class="text-3xl font-bold text-green-500">0</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-slate-500">Minimum: 300 lux</div>
+            </div>
+        </div>
+
+        <!-- Charts and Control -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <!-- Chart -->
+            <div class="lg:col-span-2 bg-slate-800 rounded-lg shadow-xl p-6 border border-slate-700">
+                <h2 class="text-xl font-bold text-white mb-4">Grafik Real-time</h2>
+                <canvas id="sensorChart" height="100"></canvas>
+            </div>
+
+            <!-- Lamp Control -->
+            <div class="bg-slate-800 rounded-lg shadow-xl p-6 border border-slate-700">
+                <h2 class="text-xl font-bold text-white mb-4">Kontrol Lampu</h2>
+                <div class="flex flex-col items-center justify-center h-64">
+                    <div id="lampIndicator" class="w-32 h-32 rounded-full mb-6 flex items-center justify-center transition-all bg-slate-700">
+                        <svg id="lampIcon" class="text-slate-500" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </div>
+                    <button id="lampButton" onclick="toggleLamp()" class="flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all bg-green-500 hover:bg-green-600 text-white">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                        Nyalakan Lampu
+                    </button>
+                    <p class="text-slate-400 text-sm mt-4">
+                        Status: <span id="lampStatus" class="font-semibold text-slate-500">OFF</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div class="bg-slate-800 rounded-lg shadow-xl p-6 border border-slate-700">
+            <h2 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <svg class="text-yellow-400" width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                </svg>
+                Notifikasi & Alert
+            </h2>
+            <div id="alertsContainer" class="space-y-2 max-h-64 overflow-y-auto">
+                <p class="text-slate-500 text-center py-4">Tidak ada alert saat ini</p>
+            </div>
+        </div>
+
+        <!-- Security Info -->
+        <div class="mt-6 bg-slate-800 rounded-lg shadow-xl p-4 border border-slate-700">
+            <div class="flex items-center gap-2 text-sm text-slate-400">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>Koneksi aman menggunakan MQTT over TLS (Port 8883) dengan autentikasi username/password</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const TEMP_MAX = 30;
+        const TEMP_MIN = 18;
+        const HUMIDITY_MAX = 70;
+        const HUMIDITY_MIN = 30;
+        const LIGHT_MIN = 300;
+
+        // State
+        let lampOn = false;
+        let alerts = [];
+        let chartData = {
+            labels: [],
+            temperature: [],
+            humidity: []
+        };
+
+        // Chart initialization
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Suhu (°C)',
+                        data: [],
+                        borderColor: '#ef4444',
+                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2
+                    },
+                    {
+                        label: 'Kelembapan (%)',
+                        data: [],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        borderWidth: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#94a3b8'
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: '#334155'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: '#334155'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Toggle lamp function
+        function toggleLamp() {
+            lampOn = !lampOn;
+            const indicator = document.getElementById('lampIndicator');
+            const icon = document.getElementById('lampIcon');
+            const button = document.getElementById('lampButton');
+            const status = document.getElementById('lampStatus');
+
+            if (lampOn) {
+                indicator.className = 'w-32 h-32 rounded-full mb-6 flex items-center justify-center transition-all bg-yellow-400 lamp-glow';
+                icon.className = 'text-yellow-900';
+                button.className = 'flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all bg-red-500 hover:bg-red-600 text-white';
+                button.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>Matikan Lampu';
+                status.className = 'font-semibold text-green-400';
+                status.textContent = 'ON';
+            } else {
+                indicator.className = 'w-32 h-32 rounded-full mb-6 flex items-center justify-center transition-all bg-slate-700';
+                icon.className = 'text-slate-500';
+                button.className = 'flex items-center gap-2 px-6 py-3 rounded-lg font-semibold transition-all bg-green-500 hover:bg-green-600 text-white';
+                button.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>Nyalakan Lampu';
+                status.className = 'font-semibold text-slate-500';
+                status.textContent = 'OFF';
+            }
+
+            console.log(`Publishing to MQTT: workspace/control/lamp - ${lampOn ? 'ON' : 'OFF'}`);
+        }
+
+        // Update sensor values
+        function updateSensorValues(temp, humidity, light) {
+            // Update display values
+            const tempEl = document.getElementById('tempValue');
+            const humidityEl = document.getElementById('humidityValue');
+            const lightEl = document.getElementById('lightValue');
+
+            tempEl.textContent = temp.toFixed(1) + '°C';
+            humidityEl.textContent = humidity.toFixed(1) + '%';
+            lightEl.textContent = Math.round(light);
+
+            // Update colors based on thresholds
+            tempEl.className = (temp < TEMP_MIN || temp > TEMP_MAX) ? 'text-3xl font-bold text-red-500' : 'text-3xl font-bold text-green-500';
+            humidityEl.className = (humidity < HUMIDITY_MIN || humidity > HUMIDITY_MAX) ? 'text-3xl font-bold text-red-500' : 'text-3xl font-bold text-green-500';
+            lightEl.className = (light < LIGHT_MIN) ? 'text-3xl font-bold text-red-500' : 'text-3xl font-bold text-green-500';
+
+            // Check thresholds
+            checkThresholds(temp, humidity, light);
+        }
+
+        // Check thresholds and add alerts
+        function checkThresholds(temp, humidity, light) {
+            const now = new Date().toLocaleTimeString();
+            const newAlerts = [];
+
+            if (temp > TEMP_MAX) {
+                newAlerts.push({ time: now, type: 'danger', message: `Suhu terlalu tinggi: ${temp.toFixed(1)}°C` });
+            }
+            if (temp < TEMP_MIN) {
+                newAlerts.push({ time: now, type: 'warning', message: `Suhu terlalu rendah: ${temp.toFixed(1)}°C` });
+            }
+            if (humidity > HUMIDITY_MAX) {
+                newAlerts.push({ time: now, type: 'danger', message: `Kelembapan terlalu tinggi: ${humidity.toFixed(1)}%` });
+            }
+            if (humidity < HUMIDITY_MIN) {
+                newAlerts.push({ time: now, type: 'warning', message: `Kelembapan terlalu rendah: ${humidity.toFixed(1)}%` });
+            }
+            if (light < LIGHT_MIN) {
+                newAlerts.push({ time: now, type: 'info', message: `Cahaya kurang: ${Math.round(light)} lux` });
+            }
+
+            if (newAlerts.length > 0) {
+                alerts = [...newAlerts, ...alerts].slice(0, 10);
+                updateAlertsDisplay();
+            }
+        }
+
+        // Update alerts display
+        function updateAlertsDisplay() {
+            const container = document.getElementById('alertsContainer');
+            
+            if (alerts.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-center py-4">Tidak ada alert saat ini</p>';
+                return;
+            }
+
+            container.innerHTML = alerts.map(alert => {
+                const colorClass = alert.type === 'danger' ? 'bg-red-500/10 border-red-500/50 text-red-400' :
+                                  alert.type === 'warning' ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400' :
+                                  'bg-blue-500/10 border-blue-500/50 text-blue-400';
+                
+                return `
+                    <div class="p-3 rounded-lg border ${colorClass}">
+                        <div class="flex justify-between items-start">
+                            <p class="font-medium">${alert.message}</p>
+                            <span class="text-xs opacity-70">${alert.time}</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Update chart
+        function updateChart(temp, humidity) {
+            const time = new Date().toLocaleTimeString();
+            
+            chartData.labels.push(time);
+            chartData.temperature.push(temp);
+            chartData.humidity.push(humidity);
+
+            // Keep only last 20 data points
+            if (chartData.labels.length > 20) {
+                chartData.labels.shift();
+                chartData.temperature.shift();
+                chartData.humidity.shift();
+            }
+
+            chart.data.labels = chartData.labels;
+            chart.data.datasets[0].data = chartData.temperature;
+            chart.data.datasets[1].data = chartData.humidity;
+            chart.update('none');
+        }
+
+        // Simulate MQTT data
+        function simulateMQTTData() {
+            const temp = 20 + Math.random() * 15;
+            const humidity = 40 + Math.random() * 30;
+            const light = Math.random() * 1000;
+
+            updateSensorValues(temp, humidity, light);
+            updateChart(temp, humidity);
+        }
+
+        // Initialize
+        console.log('Connecting to MQTT broker over TLS...');
+        setInterval(simulateMQTTData, 3000);
+        simulateMQTTData();
+    </script>
+</body>
+</html>
